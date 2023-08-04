@@ -205,24 +205,30 @@ def aktualizacja():    #aktualizacja danych jako funkcja która wywołujemy przy
                 for df in df_list:
                     # -----BASE ---
                     df.drop('Unnamed: 1', axis=1,inplace=True)  # Usunięcie kolumny 'Unnamed: 1'
+                    df = df[~df['Kontrakt'].str.contains('OFFPEAK|H-PEAK|L-PEAK|W', case=False)] # Usunięcie rekordów, które w kolumnie 'Kontrakt' zawierają słowa 'offpeak', 'H-peak' lub 'L-Peak'
                     base = df
                     base = base.iloc[:-1]  # Usunięcie ostatniego wiersza z tabeli (podsumowania)
                     base.insert(0, 'data', dzien)  # Dodanie daty w pierwszej kolumnie (0-zerowej)
-                    base['typ'] = "BASE"  # Dodajemy kolumnę Typ: "BASE" dla produktów z tabeli base, PEAK dla produktów z tabeli PEAK
-                    # -----PEAK-----
-                    peak = df
-                    peak = peak.iloc[:-1]
-                    peak.insert(0, 'data', dzien)
-                    peak['typ'] = 'PEAK'
+                    if df['Kontrakt'].str.contains('BASE').any():
+                        base['typ'] = "BASE"  # Dodajemy kolumnę Typ: "BASE" dla produktów z tabeli base, PEAK dla produktów z tabeli PEAK
+                    else:
+                        base['typ'] = "PEAK"
+                    print(base)
+                    # # -----PEAK-----
+                    # peak = df
+                    # peak = peak.iloc[:-1]
+                    # peak.insert(0, 'data', dzien)
+                    # peak['typ'] = 'PEAK'
+                    # print(peak)
 
                     wb = load_workbook(filename="abc.xlsx")
                     ws = wb["a"]
                     for x in dataframe_to_rows(base, index=False, header=False):
                         ws.append(x)  # Append dodaje dane do już istniejących w pliku
                     wb.save("abc.xlsx")
-                    for x in dataframe_to_rows(peak, index=False, header=False):
-                        ws.append(x)
-                    wb.save("abc.xlsx")
+                    # for x in dataframe_to_rows(peak, index=False, header=False):
+                    #     ws.append(x)
+                    # wb.save("abc.xlsx")
 
 
 st.button('aktualizacja danych z TGE',on_click=aktualizacja)# Przycisk do aktualizacji danych, jeszcze do dopracowania wizualizacja np. popup z postepem, info o zakończeniu

@@ -204,16 +204,12 @@ def aktualizacja():    #aktualizacja danych jako funkcja która wywołujemy przy
                 df_list = analizuj_dane(html)
                 for df in df_list:
                     # -----BASE ---
-                    print(f'df----->{df}')
-                    df.drop('Unnamed: 1', axis=1)  # Usunięcie kolumny 'Unnamed: 1'
+                    df.drop('Unnamed: 1', axis=1,inplace=True)  # Usunięcie kolumny 'Unnamed: 1'
                     base = df
-                    print(f'base->{base}')
-                    print(base)
                     base = base.iloc[:-1]  # Usunięcie ostatniego wiersza z tabeli (podsumowania)
                     base.insert(0, 'data', dzien)  # Dodanie daty w pierwszej kolumnie (0-zerowej)
                     base['typ'] = "BASE"  # Dodajemy kolumnę Typ: "BASE" dla produktów z tabeli base, PEAK dla produktów z tabeli PEAK
                     # -----PEAK-----
-                    df.drop('Unnamed: 1', axis=1)
                     peak = df
                     peak = peak.iloc[:-1]
                     peak.insert(0, 'data', dzien)
@@ -238,4 +234,4 @@ ostatni_wiersz = ws.max_row
 ostatnia_data = ws.cell(row=ostatni_wiersz,
                         column=1).value  # uchwycona ostatnia data, dla której są dane w pliku excel
 st.write(f'dane aktualne na dzień: {ostatnia_data}')
-#https://github.com/sliwka00/WebaooTGEWykresy/blob/master/wykresy.py         ścieżka do 'deploy' na streamlit ale wyskakuje błąd
+#https://github.com/sliwka00/WykresyTGE-bs4/blob/master/wykresy.py        ścieżka do 'deploy' na streamlit ale wyskakuje błąd

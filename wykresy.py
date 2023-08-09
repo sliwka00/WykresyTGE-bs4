@@ -10,6 +10,8 @@ import holidays.countries
 import streamlit as st
 from bs4 import BeautifulSoup
 import requests
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 cale=[]
 kwartaly=[]
@@ -74,60 +76,39 @@ def draw_chart(produkt):
 
     st.pyplot()
 
-def draw_chartQ(produkt):    # na próbe z plotly, ale nie chce pokazać dobrze 2 skali Y na 1 wykresie
+def draw_interactive(produkt):    # na próbe z plotly, ale nie chce pokazać dobrze 2 skali Y na 1 wykresie
     df2 = df[df['Kontrakt'] == produkt]
 
     data = df2['Data']
     cena = df2['DKR']
     wolumen = df2['wolumen']
-
-    # Tworzenie wykresu korzystając z biblioteki Plotly
-    fig = go.Figure()
-
-    # Dodaj wykres słupkowy dla wolumenu
-    fig.add_trace(go.Bar(x=data, y=wolumen, marker_color='gray', opacity=0.5, name='Wolumen'))
-
-    # Dodaj wykres liniowy dla ceny
-    fig.add_trace(go.Scatter(x=data, y=cena, mode='markers+lines', line=dict(color='blue'), name='Cena'))
-
-    # Skalowanie osi Y dla wykresu cen i wolumenu
-    max_wolumen = wolumen.max()
-    max_cena = cena.max()
-
-    # Dodaj drugą oś Y dla wykresu ceny
-    fig.update_layout(
-        title=produkt,
-        xaxis_title='Data',
-        yaxis=dict(title='Wolumen', title_font=dict(color='gray'), tickfont=dict(color='gray'), range=[0, max_wolumen * 1.2],side="left"),
-        yaxis2=dict(
-            title='Cena',
-            title_font=dict(color='blue'),
-            tickfont=dict(color='blue'),
-            overlaying='y',
-            side='right',
-            range=[0, max_cena * 1.2]
-        ),
-        hovermode='x',
-        legend=dict(
-            x=0.5,
-            y=1.15,
-            orientation='h'
-        )
+    # Create figure with secondary y-axis
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
+    # Add traces
+    fig.add_trace(
+        go.Scatter(x=data, y=cena, name="cena",mode='markers+lines', line=dict(color='blue')),
+        secondary_y=False,
     )
 
-    # Dodaj interaktywny "krzyżak" do wykresu
+    fig.add_trace(
+        go.Bar(x=data, y=wolumen, name="Wolumen (Mwh)",marker_color='gray', opacity=0.5),
+        secondary_y=True,
+    )
+    #Dodaj interaktywny "krzyżak" do wykresu
     fig.update_traces(hoverinfo='text',
                       hovertemplate='<b>Data</b>: %{x}<br><b>Cena</b>: %{y:.2f}',
                       selector=dict(mode='markers+lines'))
 
-    # Wyświetl wykres interaktywny w Streamlit
+
     st.plotly_chart(fig)
 
 
 st.set_page_config(layout="wide")   #rozciąga aplikacje na całą strone web
 st.title("Wykres liniowy DKR, wraz z słupkami z wolumenem")
-col1, col2, col3 = st.columns(3)
 
+interactive= st.checkbox("włącz wykres interaktywny")
+
+col1, col2, col3 = st.columns(3)
 with col1:
     selected_Y=st.selectbox("Y - Produkty roczne",cale)
 with col2:
@@ -137,11 +118,20 @@ with col3:
 
 draw_y,draw_q,draw_msc= st.columns(3)
 with draw_y:
-    draw_chart(selected_Y)
+    if interactive==True:
+        draw_interactive((selected_Y))
+    else:
+        draw_chart(selected_Y)
 with draw_q:
-    draw_chart(selected_Q)
+    if interactive==True:
+        draw_interactive((selected_Q))
+    else:
+        draw_chart(selected_Q)
 with draw_msc:
-    draw_chart(selected_msc)
+    if interactive==True:
+        draw_interactive((selected_msc))
+    else:
+        draw_chart(selected_msc)
 
 def pobierz_dane(url):
     response = requests.get(url)
@@ -203,10 +193,10 @@ def aktualizacja():    #aktualizacja danych jako funkcja która wywołujemy przy
             if html:
                 df_list = analizuj_dane(html)
                 for df in df_list:
-                    # -----BASE ---
+                    # -----BASE & PEAK  ---
                     df.drop('Unnamed: 1', axis=1,inplace=True)  # Usunięcie kolumny 'Unnamed: 1'
                     df = df[~df['Kontrakt'].str.contains('OFFPEAK|H-PEAK|L-PEAK|W', case=False)] # Usunięcie rekordów, które w kolumnie 'Kontrakt' zawierają słowa 'offpeak', 'H-peak' lub 'L-Peak'
-                    base = df
+                    base = df #nazwa df jako base , ale kod zmieniony i zarówno base jak i peak przechowywany tutaj
                     base = base.iloc[:-1]  # Usunięcie ostatniego wiersza z tabeli (podsumowania)
                     base.insert(0, 'data', dzien)  # Dodanie daty w pierwszej kolumnie (0-zerowej)
                     if df['Kontrakt'].str.contains('BASE').any():
@@ -214,21 +204,12 @@ def aktualizacja():    #aktualizacja danych jako funkcja która wywołujemy przy
                     else:
                         base['typ'] = "PEAK"
                     print(base)
-                    # # -----PEAK-----
-                    # peak = df
-                    # peak = peak.iloc[:-1]
-                    # peak.insert(0, 'data', dzien)
-                    # peak['typ'] = 'PEAK'
-                    # print(peak)
 
                     wb = load_workbook(filename="abc.xlsx")
                     ws = wb["a"]
                     for x in dataframe_to_rows(base, index=False, header=False):
                         ws.append(x)  # Append dodaje dane do już istniejących w pliku
                     wb.save("abc.xlsx")
-                    # for x in dataframe_to_rows(peak, index=False, header=False):
-                    #     ws.append(x)
-                    # wb.save("abc.xlsx")
 
 
 st.button('aktualizacja danych z TGE',on_click=aktualizacja)# Przycisk do aktualizacji danych, jeszcze do dopracowania wizualizacja np. popup z postepem, info o zakończeniu

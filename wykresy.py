@@ -59,14 +59,14 @@ def draw_chart(produkt):
     df2=df[df['Kontrakt']==produkt]
     data=df2['Data']
     cena=(df2['DKR'])
-    wolumen=(df2['wolumen'])
+    wolumen=(df2['liczba transakcji'])
     # Tworzenie figury i osi
     fig, ax1 = plt.subplots()
     ax1.bar(data, wolumen, color='gray', alpha=0.5)
-    ax1.set_ylabel('Wolumen')
+    ax1.set_ylabel('liczba transakcji')
     ax2 = ax1.twinx()
 
-    ax2.plot(data, cena, marker='o', linestyle='-', color='blue')
+    ax2.plot(data, cena, marker='o', linestyle='-', color='blue',markersize=2, markerfacecolor='black')
     ax2.set_title(produkt)
     ax2.set_xlabel('Data')
     ax2.set_ylabel('cena')
@@ -81,7 +81,7 @@ def draw_interactive(produkt):    # na próbe z plotly, ale nie chce pokazać do
 
     data = df2['Data']
     cena = df2['DKR']
-    wolumen = df2['wolumen']
+    wolumen = df2['liczba transakcji']
     # Create figure with secondary y-axis
     fig = make_subplots(specs=[[{"secondary_y": True}]])
     # Add traces
@@ -91,7 +91,7 @@ def draw_interactive(produkt):    # na próbe z plotly, ale nie chce pokazać do
     )
 
     fig.add_trace(
-        go.Bar(x=data, y=wolumen, name="Wolumen (Mwh)",marker_color='gray', opacity=0.5),
+        go.Bar(x=data, y=wolumen, name="Liczba transakcji",marker_color='gray', opacity=0.5),
         secondary_y=True,
     )
     #Dodaj interaktywny "krzyżak" do wykresu

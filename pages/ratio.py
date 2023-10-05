@@ -15,14 +15,14 @@ parent_directory = os.path.abspath(os.path.join(current_directory, os.pardir))
 file_path_abc_xlsx = os.path.join(parent_directory, 'abc.xlsx')
 df = pd.read_excel(file_path_abc_xlsx) # otwieram excel
 
-
+st.set_page_config(layout="wide")   #rozciąga aplikacje na całą strone web
 
 df = df.replace('-',np.nan)   #zamienia  "-" na Nan w komórkach gdzie nie ma ceny
 df = df.astype({'DKR':float})  #zamienia kolumne DKR na floaty (dane były jako string)
 df['kontrakt short'] = df['Kontrakt'].str.split("_").str[-1]       #Skraca nazwe kontraktu do uniwersalnego (dla base i peak) żeby je sparować
 df['Data']=pd.to_datetime(df['Data'], format='%d-%m-%Y')
 df['wolumen'] = [float(str(val).replace(u'\xa0','').replace(',','.')) for val in df['wolumen'].values]   #wyrzucenie dziwnych znaków z wolumenu i zamiana na float
-df3 = df[['Data','DKR','typ','wolumen','kontrakt short']]  #stworzenie skróconego df bez zbędnych kolumn
+df3 = df[['Data','DKR','typ','wolumen','kontrakt short','liczba transakcji']]  #stworzenie skróconego df bez zbędnych kolumn
 df_base = df3[df3['typ'] == 'BASE']     #stworzenie df dla base
 df_peak = df3[df3['typ'] == 'PEAK']
 df_wsp = pd.merge(df_base,df_peak, on=['Data','kontrakt short'])  #połączenie df_base i df_peak dzieki temu można dodać kolumne ratio
@@ -41,8 +41,8 @@ def draw_ratio2(produkt):    # wyświetla ratio + 2 słupki wolumenowe base i pe
     df_temp=df_wsp[df_wsp['kontrakt short']==produkt]
     data=df_temp['Data']
     ratio=df_temp['ratio']
-    wol_peak=df_temp['wolumen_y']
-    wol_base=df_temp['wolumen_x']
+    wol_peak=df_temp['liczba transakcji_y']
+    wol_base=df_temp['liczba transakcji_x']
     # Tworzenie figury i osi
     fig, ax1 = plt.subplots()
     ax1.bar(data, wol_peak, color='red', alpha=0.5)
@@ -54,18 +54,18 @@ def draw_ratio2(produkt):    # wyświetla ratio + 2 słupki wolumenowe base i pe
     ax3.set_ylabel('Wolumen base')
 
     ax2 = ax1.twinx()
-    ax2.plot(data, ratio, marker='o', linestyle='-', color='blue')
+    ax2.plot(data, ratio, marker='o', linestyle='-', color='blue', markersize=3, markerfacecolor='black')
     ax2.set_title(produkt)
     ax2.set_xlabel('Data')
     ax2.set_ylabel('Ratio Peak/Base')
     fig.autofmt_xdate(rotation=35, ha='right')    #rotuje daty wyświetlane pod wykresem
     st.pyplot()
-def draw_interactive(produkt):    # na próbe z plotly, ale nie chce pokazać dobrze 2 skali Y na 1 wykresie
+def draw_interactive(produkt):    # wykres interwaktywny plotly
     df_temp = df_wsp[df_wsp['kontrakt short'] == produkt]
     data = df_temp['Data']
     ratio = df_temp['ratio']
-    wol_peak = df_temp['wolumen_y']
-    wol_base = df_temp['wolumen_x']
+    wol_peak = df_temp['liczba transakcji_y']
+    wol_base = df_temp['liczba transakcji_x']
     # Create figure with secondary y-axis
     fig = make_subplots(specs=[[{"secondary_y": True}]])
     # Add traces
@@ -84,9 +84,18 @@ def draw_interactive(produkt):    # na próbe z plotly, ale nie chce pokazać do
     )
     #Dodaj interaktywny "krzyżak" do wykresu
     fig.update_traces(hoverinfo='text',
-                      hovertemplate='<b>Data</b>: %{x}<br><b>ratio</b>: %{y:.2f}',
-                      selector=dict(mode='markers+lines'))
+                      hovertemplate='<b>Data</b>: %{x}<br><b>ratio</b>: %{y:.3f}<br><b>Liczba transakcji base</b>: %{customdata[0]}<br><b>Liczba transakcji peak</b>: %{customdata[1]}',
+                      customdata=np.column_stack((wol_base, wol_peak)),  # Dodaj dane customdata jako krotkę
+                      selector=dict(mode='markers+lines'),
+                    hoverlabel=dict(
+                        font=dict(size=20),  # Zwiększ rozmiar czcionki
+                        bgcolor='white',      # Ustaw kolor tła na białe
+                        bordercolor='black',  # Ustaw kolor obramowania
+                        font_color='black'    # Ustaw kolor tekstu
+                    ))
 
+    # Ustaw rozmiar wykresu
+    fig.update_layout(width=2000, height=900)
 
     st.plotly_chart(fig)
 
